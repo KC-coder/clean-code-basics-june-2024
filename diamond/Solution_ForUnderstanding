@@ -1,0 +1,115 @@
+#include <iostream>
+
+//interface / contract/abstraction
+class IPrintableDevice{
+public:
+   virtual void print() = 0;
+
+};
+
+class IScanner{
+public:
+   virtual void scan() = 0;
+};
+   class D
+   {
+   private:
+      int val;
+   protected:
+      D(int x) { val = x; std::cout << "D Constructor, val = " << val << std::endl; }
+   public:
+      ~D() { std::cout << "D destructor called " << std::endl; }
+      void printVal() { std::cout << "Val in D = " << val << std::endl; }
+
+   };
+
+   class P : public D, public IPrintableDevice // this not called multiple inhertance as it doesn't offer any code to be used its a interface
+   {
+   public:
+      P() : D(1) { std::cout << "P Constructor" << std::endl; }
+      ~P() { std::cout << "P destructor called " << std::endl; }
+      void print() { std::cout << "Printing..." << std::endl; }
+   };
+
+   class S : public D, public IScanner
+   {
+   public:
+      S() : D(2)
+      {
+         std::cout << "S Constructor" << std::endl;
+      }
+      ~S() { std::cout << "S destructor called " << std::endl; }
+      void scan() { std::cout << "Scanning..." << std::endl; }
+   };
+
+   /*
+   Currently PS is tighty coupled as to print() it need pObj of type P and to scan it needs sObj of type S
+
+   TO correct it use 
+
+      dependency injection concept, the dependency should be injected. if the dependency is created then it is volilation of SRP
+
+      Most common dependency injection is constructer injection
+
+
+      NOTE: here the tightly coupling is removed by using dependency injection
+   */
+   class PS : public D, public IPrintableDevice, public IScanner // causing dependency inversion principle volilation
+   {
+      /*
+      // causing dependency inversion principle volilation making it tightly coupled
+          P pObj; // makes has-a relation
+          S sObj; // makes is-a relation
+      */
+
+      //this will remove tightly coupled code
+      IPrintableDevice* pObj; // makes has-a relation
+      IScanner* sObj; // makes is-a relation
+
+   public:
+      //using construer injection to inject negibour addr of s
+
+      PS(int x, IPrintableDevice *pAddress, IScanner *sAddress) :
+         D(x), sObj{ sAddress }, pObj{ pAddress } {
+         std::cout << "PS Constructor" << std::endl;
+      }
+      ~PS() { std::cout << "PS destructor called " << std::endl; }
+      void print()
+      {
+         //delegation
+         pObj->print();
+      }
+      void scan(){
+         //delegation
+         sObj->scan();
+      }
+
+   };
+
+   //void printTask(IPrintableDevice* pptr) -> uses runtime polymorphsim , its costly in embedded
+   template<typename T>
+   void printTask(T* ptr) //this type is called paramterised polymorphsim
+   {
+      pptr->print();
+   }
+
+   template<typename T>
+   void scanTask(T* sptr)
+   {
+      sptr->scan();
+   }
+
+   int main()
+   {
+      P pObj;
+      S sObj;
+      PS psObj{ 10, &pObj, &sObj };
+
+      printTask(&pObj);
+      printTask(&psObj);
+
+      scanTask(&sObj);
+      scanTask(&psObj);
+
+      return 0;
+   }
